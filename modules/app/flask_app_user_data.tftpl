@@ -1,0 +1,47 @@
+#!/bin/bash
+
+echo "Start user data"
+
+cd /home/ec2-user/
+
+%{ for program in yum_programs }
+yum -y install ${program}
+%{ endfor }
+
+%{ for program in pip_programs }
+pip install ${program}
+%{ endfor }
+
+git clone ${git_url}
+
+mkdir -p /home/ec2-user/.aws/ && cat > /home/ec2-user/.aws/config << ENDOFFILE
+[default]
+region = eu-west-1
+ENDOFFILE
+
+cat > /etc/systemd/system/flaskapp.service << ENDOFFILE
+[Unit]
+Description=Run Flask app
+After=network.target
+StartLimitIntervalSec=0
+[Service]
+%{ for env_var in env_variables }
+Environment=${env_var}
+%{ endfor }
+Type=simple
+Restart=always
+RestartSec=1
+User=ec2-user
+WorkingDirectory=/home/ec2-user/${app_name}/
+ExecStart= /bin/flask run --host=0.0.0.0 --port=${app_port}
+
+[Install]
+WantedBy=multi-user.target
+ENDOFFILE
+
+
+systemctl daemon-reload
+
+systemctl start flaskapp.service
+
+systemctl enable flaskapp.service

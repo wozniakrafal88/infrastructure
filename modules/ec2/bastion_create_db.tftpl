@@ -1,0 +1,37 @@
+#!/bin/bash
+
+exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+
+echo "Start user data"
+
+yum install postgresql.x86_64 -y
+
+export DB_PASSWORD="password"
+export DB_PORT="5432"
+export DB_DBNAME="flask_db"
+export DB_HOST="default-rwozniak-db.cn10audml9ef.eu-west-1.rds.amazonaws.com"
+
+
+psql -h $DB_HOST -U postgres password=$DB_PASSWORD <<EOF
+CREATE DATABASE flask_db;
+CREATE USER dbtest WITH PASSWORD 'password';
+GRANT ALL PRIVILEGES ON DATABASE flask_db TO dbtest;
+GRANT rds_iam to dbtest;
+\q
+EOF
+
+curl https://truststore.pki.rds.amazonaws.com/eu-west-1/eu-west-1-bundle.pem -o /home/ec2-user/eu-west-1-bundle.pem 
+
+export RDSHOST="default-rwozniak-db.cn10audml9ef.eu-west-1.rds.amazonaws.com"
+export DB_PORT="5432"
+export AWS_REGION="eu-west-1"
+export DB_USERNAME="dbtest"
+export DB_DBNAME="flask_db"
+export PGPASSWORD="$(aws rds generate-db-auth-token --hostname $RDSHOST --port $DB_PORT --region $AWS_REGION --username $DB_USERNAME )"
+
+
+
+psql "host=$RDSHOST port=$DB_PORT sslmode=verify-full sslrootcert=/home/ec2-user/eu-west-1-bundle.pem dbname=$DB_DBNAME user=$DB_USERNAME password=$PGPASSWORD" << EOF
+CREATE TABLE books (id serial PRIMARY KEY,title varchar (150) NOT NULL,author varchar (50) NOT NULL,pages_num integer NOT NULL,review text,date_added date DEFAULT CURRENT_TIMESTAMP);	
+\q
+EOF

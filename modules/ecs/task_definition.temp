@@ -1,0 +1,21 @@
+resource "aws_ecs_task_definition" "task_definition" {
+  family = "${var.env_name}_${var.tag_name_prefix}_s3_task_definition"
+  container_definitions = jsonencode([
+    {
+      name      = "${var.env_name}_${var.tag_name_prefix}_s3_container"
+      image     = "public.ecr.aws/ablachowicz-public-ecr-reg/s3_app_rwozniak:latest"
+      cpu       = 256
+      memory    = 512
+      essential = true
+      requires_compatibilities = "FARGATE"
+      operating_system_family = "Linux"
+      iam = var.s3_iam_profile
+      portMappings = [
+        {
+          containerPort = 5000
+          hostPort      = 5000
+        }
+      ]
+    }
+  ])
+}

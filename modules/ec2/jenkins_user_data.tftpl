@@ -104,7 +104,10 @@ curl -X POST 'http://admin:119eb78cddab52d0e2a48282fb223276a6@${jenkins_load_Bal
   }
 }'
 
-
+mkdir -p /home/ec2-user/.aws/ && cat > /home/ec2-user/.aws/config << ENDOFFILE
+[default]
+region = eu-west-1
+ENDOFFILE
 
 mkdir /home/ec2-user/bin
 
@@ -118,4 +121,4 @@ rm -f terraform.zip
 
 chown -R ec2-user:ec2-user /home/ec2-user/bin
 
-terraform -install-autocomplete
+/home/ec2-user/bin/terraform -install-autocomplete
